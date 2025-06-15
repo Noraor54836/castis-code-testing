@@ -1,0 +1,140 @@
+version: "3.8"
+
+services:
+  # etcd for APISIX configuration storage
+  etcd:
+    image: bitnami/etcd:3.5.5
+    platform: linux/amd64
+    container_name: etcd
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - apisix-network
+
+  # Apache APISIX API Gateway
+  apisix:
+    image: apache/apisix:2.15.0-alpine
+    container_name: apisix
+    restart: unless-stopped
+    volumes:
+      - ./apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    depends_on:
+      etcd:
+        condition: service_healthy
+    ports:
+      - "9080:9080"
+      - "9091:9091"
+      - "9443:9443"
+    networks:
+      - apisix-network
+
+  # MariaDB Database
+  mariadb:
+    image: mariadb:10.9
+    container_name: mariadb
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=apiapp
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - apisix-network
+
+  # GoFiber Backend
+  gofiber-backend:
+    build:
+      context: ./gofiber-backend
+      dockerfile: Dockerfile
+    container_name: gofiber-backend
+    depends_on:
+      - mariadb
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=apiapp
+    ports:
+      - "8080:8080"
+    networks:
+      - apisix-network
+
+  # WordPress API Provider
+  wordpress-db:
+    image: mysql:8.0
+    container_name: wordpress-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${WORDPRESS_DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=${WORDPRESS_DB_USER}
+      - MYSQL_PASSWORD=${WORDPRESS_DB_PASSWORD}
+      - MYSQL_INITDB_SKIP_TZINFO=1
+    volumes:
+      - wordpress_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - apisix-network
+
+  wordpress:
+    image: wordpress:6.3-apache
+    container_name: wordpress
+    restart: unless-stopped
+    depends_on:
+      wordpress-db:
+        condition: service_healthy
+    environment:
+      - WORDPRESS_DB_HOST=wordpress-db:3306
+      - WORDPRESS_DB_USER=${WORDPRESS_DB_USER}
+      - WORDPRESS_DB_PASSWORD=${WORDPRESS_DB_PASSWORD}
+      - WORDPRESS_DB_NAME=wordpress
+      - WORDPRESS_CONFIG_EXTRA=
+        define('WP_REST_API_LOG_REQUESTS', true);
+        define('WP_DEBUG', false);
+    ports:
+      - "8081:80"
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - apisix-network
+
+  # React Custom Dashboard
+  react-dashboard:
+    build:
+      context: ./react-dashboard
+      dockerfile: Dockerfile
+    container_name: react-dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_APISIX_ADMIN_URL=http://localhost:9091
+    networks:
+      - apisix-network
+
+volumes:
+  mariadb_data:
+  wordpress_db_data:
+  wordpress_data:
+
+networks:
+  apisix-network:
+    driver: bridge

@@ -1,0 +1,118 @@
+# Environment variables (but NOT .env.example)
+.env
+!.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# API Keys and Secrets
+*.key
+*.pem
+secrets/
+config/secrets/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+db_data/
+mysql_data/
+mariadb_data/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# React build
+react-dashboard/build/
+react-dashboard/dist/
+react-dashboard/.env.local
+react-dashboard/.env.development.local
+react-dashboard/.env.test.local
+react-dashboard/.env.production.local
+
+# Go
+gofiber-backend/main
+gofiber-backend/*.exe
+gofiber-backend/*.exe~
+gofiber-backend/*.dll
+gofiber-backend/*.so
+gofiber-backend/*.dylib
+gofiber-backend/vendor/
+gofiber-backend/.env
+
+# Test coverage
+coverage/
+*.cover
+*.coverprofile
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# APISIX
+apisix/logs/
+apisix/conf/config-local.yaml
+apisix/config.yaml
+
+# WordPress
+wordpress_data/
+wp-content/uploads/
+wp-config-local.php
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# SSL certificates
+*.crt
+*.cert
+*.ca-bundle
+
+# Local development overrides
+docker-compose.local.yml
+docker-compose.dev.yml 
