@@ -35,7 +35,7 @@ This project demonstrates a complete API gateway architecture with:
 │  React Dashboard│    │                  │    │   WordPress     │
 │     :3000       │───▶│   Apache APISIX  │───▶│     :8081       │
 └─────────────────┘    │      :9080       │    └─────────────────┘
-                       │      :9091       │
+                       │      :9092       │
                        │                  │    ┌─────────────────┐
                        │                  │───▶│  GoFiber API    │
                        └──────────────────┘    │     :8080       │
@@ -119,7 +119,7 @@ nano .env
 ```bash
 # Make scripts executable
 chmod +x generate-apisix-config.sh
-chmod +x setup-routes.sh
+chmod +x setup-apisix-routes.sh
 
 # Generate APISIX config with your secure keys
 ./generate-apisix-config.sh
@@ -134,8 +134,8 @@ docker-compose up -d
 # Wait for services to initialize (30-60 seconds)
 docker-compose logs -f
 
-# Initialize APISIX routes
-./setup-routes.sh
+# Initialize APISIX routes and run tests
+./setup-apisix-routes.sh
 ```
 
 ### 4. Verify Installation
@@ -153,7 +153,7 @@ curl http://localhost:9080/api/data  # Via APISIX
 
 - **React Dashboard**: http://localhost:3000
 - **APISIX Gateway**: http://localhost:9080
-- **APISIX Admin**: http://localhost:9091
+- **APISIX Admin**: http://localhost:9092
 - **GoFiber API**: http://localhost:8080
 - **WordPress**: http://localhost:8081
 - **MariaDB**: localhost:3307
@@ -474,7 +474,7 @@ Content-Type: application/json
 
 ### APISIX Admin API
 
-Base URL: `http://localhost:9091/apisix/admin`
+Base URL: `http://localhost:9092/apisix/admin`
 
 #### Routes Management
 
@@ -667,11 +667,11 @@ curl http://localhost:9080/api/posts/1
 ```bash
 # List all routes
 curl -H "X-API-KEY: your-apisix-admin-key" \
-  http://localhost:9091/apisix/admin/routes
+  http://localhost:9092/apisix/admin/routes
 
 # Get route details
 curl -H "X-API-KEY: your-apisix-admin-key" \
-  http://localhost:9091/apisix/admin/routes/1
+  http://localhost:9092/apisix/admin/routes/1
 ```
 
 ### Automated Testing Scripts
@@ -679,15 +679,11 @@ curl -H "X-API-KEY: your-apisix-admin-key" \
 #### Run Complete Test Suite
 
 ```bash
-# Make test scripts executable
-chmod +x test-apis.sh
-chmod +x test-direct.sh
+# Make test script executable
+chmod +x setup-apisix-routes.sh
 
-# Run API tests
-./test-apis.sh
-
-# Run direct backend tests
-./test-direct.sh
+# Run API setup and tests
+./setup-apisix-routes.sh
 ```
 
 #### Load Testing
@@ -759,7 +755,7 @@ docker-compose logs etcd
 
 # Test admin API
 curl -H "X-API-KEY: your-apisix-admin-key" \
-  http://localhost:9091/apisix/admin/routes
+  http://localhost:9092/apisix/admin/routes
 
 # Regenerate APISIX config
 ./generate-apisix-config.sh
@@ -778,7 +774,7 @@ docker-compose up -d react-dashboard
 
 # Check if APISIX admin API is accessible
 curl -H "X-API-KEY: your-apisix-admin-key" \
-  http://localhost:9091/apisix/admin/routes
+  http://localhost:9092/apisix/admin/routes
 ```
 
 #### Environment Variable Issues
@@ -802,7 +798,7 @@ lsof -i :3000  # React Dashboard
 lsof -i :8080  # GoFiber
 lsof -i :8081  # WordPress
 lsof -i :9080  # APISIX Gateway
-lsof -i :9091  # APISIX Admin
+lsof -i :9092  # APISIX Admin
 
 # Stop conflicting services or change ports in docker-compose.yml
 ```
@@ -827,7 +823,7 @@ lsof -i :9091  # APISIX Admin
 3. Check APISIX upstream health:
    ```bash
    curl -H "X-API-KEY: your-apisix-admin-key" \
-     http://localhost:9091/apisix/admin/upstreams
+     http://localhost:9092/apisix/admin/upstreams
    ```
 
 #### High Memory Usage
@@ -883,8 +879,7 @@ docker-compose restart
 5. Test your changes:
 
    ```bash
-   ./test-apis.sh
-   ./test-direct.sh
+   ./setup-apisix-routes.sh
    ```
 
 6. Commit and push:
@@ -925,7 +920,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
    ```bash
    docker-compose up -d
-   ./setup-routes.sh
+   ./setup-apisix-routes.sh
    ```
 
 2. **Access Dashboard** (http://localhost:3000)

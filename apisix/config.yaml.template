@@ -1,78 +1,22 @@
 apisix:
   node_listen: 9080
   enable_ipv6: false
+  admin_listen:
+    ip: 0.0.0.0
+    port: 9092
   admin_key:
     - name: "admin"
-      key: __APISIX_ADMIN_KEY__
+      key: __YOUR_APISIX_ADMIN_KEY__
       role: admin
+  enable_admin: true
+  allow_admin:
+    - 0.0.0.0/0
 
 etcd:
   host:
     - "http://etcd:2379"
   prefix: "/apisix"
   timeout: 30
-
-plugins:
-  - real-ip
-  - client-control
-  - proxy-control
-  - request-id
-  - zipkin
-  - ext-plugin-pre-req
-  - fault-injection
-  - mocking
-  - serverless-pre-function
-  - cors
-  - ip-restriction
-  - ua-restriction
-  - referer-restriction
-  - uri-blocker
-  - request-validation
-  - openid-connect
-  - authz-keycloak
-  - wolf-rbac
-  - ldap-auth
-  - hmac-auth
-  - basic-auth
-  - jwt-auth
-  - key-auth
-  - consumer-restriction
-  - authz-casbin
-  - oauth
-  - api-breaker
-  - limit-req
-  - limit-conn
-  - limit-count
-  - gzip
-  - server-info
-  - traffic-split
-  - redirect
-  - response-rewrite
-  - degraphql
-  - kafka-logger
-  - rocketmq-logger
-  - tcp-logger
-  - udp-logger
-  - file-logger
-  - loggly
-  - http-logger
-  - sls-logger
-  - google-cloud-logging
-  - splunk-hec-logging
-  - skywalking-logger
-  - opentelemetry
-  - tencent-cloud-cls
-  - prometheus
-  - node-status
-  - datadog
-  - batch-requests
-  - zipkin
-  - skywalking
-  - opentelemetry
-  - jaeger
-  - ext-plugin-post-req
-  - serverless-post-function
-  - ext-plugin-post-resp
 
 nginx_config:
   http_server_location_configuration_snippet: |

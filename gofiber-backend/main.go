@@ -6,10 +6,10 @@ import (
 	"os"
 	"strconv"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 type Record struct {
@@ -88,8 +88,8 @@ func main() {
 	// API Keys endpoints (for demonstration)
 	api.Get("/apikeys", getAPIKeys)
 
-	// Protected routes (require API key)
-	protected := api.Group("/protected", validateAPIKey)
+	// Protected routes. Authentication is handled by the APISIX gateway.
+	protected := api.Group("/protected")
 	protected.Get("/data", getRecords)
 	protected.Post("/data", createRecord)
 

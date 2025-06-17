@@ -467,3 +467,19 @@ body {
   padding: 0.25rem;
   border-radius: 4px;
 }
+
+/* API Tester Response */
+.test-response {
+  margin-top: 2rem;
+}
+.test-response pre {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  max-height: 400px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  word-wrap: break-word;
+  border: 1px solid #dee2e6;
+}

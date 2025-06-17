@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 
 const APISIX_ADMIN_URL =
-  process.env.REACT_APP_APISIX_ADMIN_URL || "http://localhost:9091";
-const ADMIN_KEY = process.env.REACT_APP_ADMIN_KEY || "your-admin-key-here";
+  process.env.REACT_APP_APISIX_ADMIN_URL || "http://localhost:9092";
+const ADMIN_KEY =
+  process.env.REACT_APP_APISIX_ADMIN_KEY || "your-admin-key-here";
 
 function App() {
   const [routes, setRoutes] = useState([]);
@@ -15,10 +16,13 @@ function App() {
   const [newRoute, setNewRoute] = useState({
     uri: "",
     name: "",
-    methods: ["GET"],
+    methods: ["GET", "OPTIONS"],
     upstream: {
       type: "roundrobin",
       nodes: {},
+    },
+    plugins: {
+      cors: {},
     },
   });
 
@@ -38,10 +42,17 @@ function App() {
       }
 
       const data = await response.json();
-      setRoutes(data.list || []);
+
+      // APISIX <2.15 returns { list: [...] }
+      // APISIX >=2.15 returns { node: { nodes: [...] } }
+      const list = data.list || data.node?.nodes || [];
+
+      setRoutes(list);
       setError("");
     } catch (err) {
-      setError(`Failed to delete route: ${err.message}`);
+      setError(`Failed to fetch routes: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -128,26 +139,32 @@ function App() {
   const routeTemplates = [
     {
       name: "WordPress API Route",
-      uri: "/api/posts",
+      uris: ["/api/posts", "/api/posts/*"],
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       upstream: {
         type: "roundrobin",
         nodes: { "wordpress:80": 1 },
       },
       plugins: {
         "proxy-rewrite": {
-          regex_uri: ["/api/posts", "/wp-json/wp/v2/posts"],
+          regex_uri: ["^/api/posts/(.*)", "/wp-json/wp/v2/posts/$1"],
         },
+        cors: {},
       },
     },
     {
       name: "GoFiber Backend Route",
       uri: "/api/data/*",
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       upstream: {
         type: "roundrobin",
         nodes: { "gofiber-backend:8080": 1 },
       },
       plugins: {
-        "key-auth": {},
+        "key-auth": {
+          header: "X-API-Key",
+        },
+        cors: {},
       },
     },
   ];
@@ -155,14 +172,18 @@ function App() {
   const applyTemplate = (template) => {
     setNewRoute({
       ...template,
-      methods: ["GET", "POST", "PUT", "DELETE"],
     });
   };
 
   // Create a new route
   const createRoute = async () => {
-    if (!newRoute.uri || !newRoute.name) {
-      setError("URI and Name are required");
+    if (!newRoute.name) {
+      setError("Name is required");
+      return;
+    }
+
+    if (!newRoute.uri && (!newRoute.uris || newRoute.uris.length === 0)) {
+      setError("At least one URI pattern is required (uri or uris).");
       return;
     }
 
@@ -173,7 +194,16 @@ function App() {
           ...newRoute.upstream,
           nodes: newRoute.upstream.nodes,
         },
+        plugins: {
+          ...(newRoute.plugins || {}),
+          cors: {},
+        },
       };
+
+      // APISIX disallows having both "uri" and "uris". Remove the redundant one.
+      if (routeData.uris && routeData.uris.length > 0 && routeData.uri) {
+        delete routeData.uri;
+      }
 
       const response = await fetch(`${APISIX_ADMIN_URL}/apisix/admin/routes`, {
         method: "POST",
@@ -185,14 +215,17 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const respText = await response.text();
+        throw new Error(
+          `${response.status} ${response.statusText}: ${respText}`
+        );
       }
 
       setShowCreateRoute(false);
       setNewRoute({
         uri: "",
         name: "",
-        methods: ["GET"],
+        methods: ["GET", "OPTIONS"],
         upstream: {
           type: "roundrobin",
           nodes: {},
@@ -346,7 +379,7 @@ function App() {
                     <div className="form-group">
                       <label>HTTP Methods</label>
                       <div className="methods-group">
-                        {["GET", "POST", "PUT", "DELETE", "PATCH"].map(
+                        {["GET", "POST", "PUT", "DELETE", "OPTIONS"].map(
                           (method) => (
                             <label key={method} className="checkbox-label">
                               <input
@@ -460,7 +493,11 @@ function App() {
                     </div>
                     <div className="route-details">
                       <div className="detail-item">
-                        <strong>URI:</strong> {route.value.uri}
+                        <strong>URI:</strong>{" "}
+                        {route.value.uri ||
+                          (route.value.uris
+                            ? route.value.uris.join(", ")
+                            : "-")}
                       </div>
                       <div className="detail-item">
                         <strong>Methods:</strong>
@@ -598,11 +635,22 @@ function APITester() {
       const response = await fetch(testUrl, options);
       const responseText = await response.text();
 
+      let formattedBody = responseText;
+      try {
+        formattedBody = JSON.stringify(JSON.parse(responseText), null, 2);
+      } catch (_) {
+        // if body itself is JSON string, try parse
+        try {
+          const parsed = JSON.parse(JSON.parse(responseText));
+          formattedBody = JSON.stringify(parsed, null, 2);
+        } catch (_) {}
+      }
+
       const result = {
         status: response.status,
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers.entries()),
-        body: responseText,
+        body: formattedBody,
       };
 
       setTestResponse(JSON.stringify(result, null, 2));
@@ -685,7 +733,7 @@ function APITester() {
               <option value="POST">POST</option>
               <option value="PUT">PUT</option>
               <option value="DELETE">DELETE</option>
-              <option value="PATCH">PATCH</option>
+              <option value="OPTIONS">OPTIONS</option>
             </select>
           </div>
           <div className="form-group flex-grow">

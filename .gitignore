@@ -97,6 +97,7 @@ temp/
 apisix/logs/
 apisix/conf/config-local.yaml
 apisix/config.yaml
+apisix/config-fixed.yaml
 
 # WordPress
 wordpress_data/
